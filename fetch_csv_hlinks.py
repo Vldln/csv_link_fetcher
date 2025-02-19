@@ -1,11 +1,9 @@
 import csv
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 import time
 import argparse
 from multiprocessing import Pool, cpu_count
-
 
 def get_article_text(url):
     try:
@@ -13,9 +11,9 @@ def get_article_text(url):
         response = requests.get(url, headers=headers, timeout=10)
         response.encoding = response.apparent_encoding  # Автоопределение кодировки
         response.raise_for_status()
-
+        
         soup = BeautifulSoup(response.text, "html.parser")
-
+        
         # Попытка извлечь основной текст статьи
         article_tags = ["article", "main", "div"]
         for tag in article_tags:
@@ -25,11 +23,10 @@ def get_article_text(url):
                 text = "\n".join(p.get_text(strip=True) for p in paragraphs)
                 if text:
                     return text
-
+        
         return "Не удалось извлечь текст"
     except Exception as e:
         return f"Ошибка: {e}"
-
 
 def process_url(args):
     url, index = args
@@ -37,7 +34,6 @@ def process_url(args):
     text = get_article_text(url)
     time.sleep(1)  # Пауза между запросами
     return [url, text]
-
 
 def process_csv(input_file, output_file):
     with open(input_file, "r", newline="", encoding="utf-8-sig") as infile:
@@ -58,20 +54,15 @@ def process_csv(input_file, output_file):
         writer = csv.writer(outfile)
         header.append("Article Text")
         writer.writerow(header)
-
+        
         # Сортируем результаты по индексу для сохранения порядка
         for url, text in sorted(results, key=lambda x: x[0]):
             writer.writerow([url, text])
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scrape articles from CSV links")
-    parser.add_argument(
-        "-i", required=True, metavar="INPUT", help="Path to input CSV file"
-    )
-    parser.add_argument(
-        "-o", default="output.csv", metavar="OUTPUT", help="Path to output CSV file"
-    )
+    parser.add_argument("-i", required=True, metavar="INPUT", help="Path to input CSV file")
+    parser.add_argument("-o", default="output.csv", metavar="OUTPUT", help="Path to output CSV file")
     args = parser.parse_args()
-
+    
     process_csv(args.i, args.o)
